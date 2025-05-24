@@ -30,4 +30,6 @@ const Expanded = new mongoose.Schema(
   { timestamps: true, collection: "expanded" }
 );
 
-export default mongoose.model("expanded", Expanded);
+// export default mongoose.model("expanded", Expanded);
+
+export default mongoose.models.expanded || mongoose.model("expanded", Expanded);
