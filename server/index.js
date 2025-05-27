@@ -7,11 +7,13 @@ import systemRoutes from "./routes/systemRoute.js";
 import tierRoutes from "./routes/tierRoute.js";
 import listRoutes from "./routes/listRoute.js";
 import warrantyRoute from "./routes/warrantyRoute.js";
+import cors from "cors";
 dotenv.config();
 
 const app = express();
 app.use(express.json());
-///
+app.use(cors());
+
 app.use("/api/expanded", expandedRoutes);
 app.use("/api/master", masterRoutes);
 app.use("/api/system", systemRoutes);
