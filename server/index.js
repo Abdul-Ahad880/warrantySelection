@@ -13,6 +13,13 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 app.use(cors());
+app.use(
+  cors({
+    origin: ["https://warranty-selection-fron.vercel.app"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  })
+);
 
 app.use("/api/expanded", expandedRoutes);
 app.use("/api/master", masterRoutes);

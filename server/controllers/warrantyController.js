@@ -69,6 +69,28 @@ export const getEngineNotes = async (req, res) => {
   res.json(engineNotes);
 };
 
+// export const getCodes = async (req, res) => {
+//   const { brand, modelCategory, engineNotes } = req.query;
+
+//   if (!brand || !modelCategory || !engineNotes) {
+//     return res.status(400).json({
+//       message: "Brand, model category, and engine notes are required",
+//     });
+//   }
+
+//   const codes = await Expanded.find({
+//     brand,
+//     modelCategory,
+//     engineNotes,
+//   }).distinct("code");
+
+//   if (!codes.length) {
+//     return res.status(404).json({ message: "No codes found" });
+//   }
+
+//   res.json(codes);
+// };
+
 export const getCodes = async (req, res) => {
   const { brand, modelCategory, engineNotes } = req.query;
 
@@ -78,15 +100,46 @@ export const getCodes = async (req, res) => {
     });
   }
 
-  const codes = await Expanded.find({
-    brand,
-    modelCategory,
-    engineNotes,
-  }).distinct("code");
+  // Fetch documents with needed fields
+  const records = await Expanded.find(
+    { brand, modelCategory, engineNotes },
+    { code: 1, subSystem: 1, _id: 1 }
+  );
 
-  if (!codes.length) {
+  if (!records.length) {
     return res.status(404).json({ message: "No codes found" });
   }
 
-  res.json(codes);
+  // Optionally filter for unique code-subsystem pairs
+  const uniqueMap = new Map();
+  records.forEach((rec) => {
+    if (!uniqueMap.has(rec.code)) {
+      uniqueMap.set(rec.code, rec);
+    }
+  });
+
+  res.json(Array.from(uniqueMap.values()));
+};
+
+export const getSubsystems = async (req, res) => {
+  const { brand, modelCategory, engineNotes, code } = req.query;
+
+  if (!brand || !modelCategory || !engineNotes || !code) {
+    return res.status(400).json({
+      message: "Brand, model category, engine notes, and code are required",
+    });
+  }
+
+  const subsystems = await Expanded.find({
+    brand,
+    modelCategory,
+    engineNotes,
+    code,
+  });
+
+  if (!subsystems.length) {
+    return res.status(404).json({ message: "No subsystems found" });
+  }
+
+  res.json(subsystems);
 };

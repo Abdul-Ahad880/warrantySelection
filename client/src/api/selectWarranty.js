@@ -35,6 +35,12 @@ export const getEngineNotes = async (brand, modelCategory) => {
   return response.data;
 };
 
+// export const getCodes = async (brand, modelCategory, engineNotes) => {
+//   const response = await axios.get(`${base}/api/warranty/codes`, {
+//     params: { brand, modelCategory, engineNotes },
+//   });
+//   return response.data;
+// };
 export const getCodes = async (brand, modelCategory, engineNotes) => {
   const response = await axios.get(`${base}/api/warranty/codes`, {
     params: { brand, modelCategory, engineNotes },
@@ -42,29 +48,12 @@ export const getCodes = async (brand, modelCategory, engineNotes) => {
   return response.data;
 };
 
-// export const getModelCategories = async (data) => {
-//   try {
-//     const response = await axios.get(`${base}/api/warranty/model-categories`);
-//     return response.data;
-//   } catch (error) {
-//     console.error("API Error:", error);
-//   }
-// };
-
-// export const getEngineNotes = async (data) => {
-//   try {
-//     const response = await axios.get(`${base}/api/warranty/engine-notes`);
-//     return response.data;
-//   } catch (error) {
-//     console.error("API Error:", error);
-//   }
-// };
-
-// export const getCodes = async (data) => {
-//   try {
-//     const response = await axios.get(`${base}/api/warranty/codes`);
-//     return response.data;
-//   } catch (error) {
-//     console.error("API Error:", error);
-//   }
-// };
+export const getSubsystems = async () => {
+  try {
+    const response = await axios.get(`${base}/api/Warranty/subsystems`);
+    return response.data;
+  } catch (error) {
+    console.error("API Error:", error);
+    throw error;
+  }
+};
