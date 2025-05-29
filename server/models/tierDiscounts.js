@@ -9,11 +9,9 @@ const TierDiscountsSchema = new mongoose.Schema(
       type: String,
     },
   },
-
   { timestamps: true, collection: "tierdiscounts" }
 );
 
-export const TierDiscounts = mongoose.model(
-  "tierdiscounts",
-  TierDiscountsSchema
-);
+const TierDiscounts = mongoose.model("TierDiscounts", TierDiscountsSchema);
+
+export default TierDiscounts;
