@@ -13,54 +13,76 @@ const WarrantyForm = () => {
   const [engineNotes, setEngineNotes] = useState("");
   const [selectedCodes, setSelectedCodes] = useState([]);
   const [result, setResult] = useState(null);
+
   const [brands, setBrands] = useState([]);
   const [modelCategories, setModelCategories] = useState([]);
   const [engineNotesList, setEngineNotesList] = useState([]);
   const [codes, setCodes] = useState([]);
 
-  // Load brands on mount
+  // Loading States
+  const [loadingBrands, setLoadingBrands] = useState(false);
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [loadingEngines, setLoadingEngines] = useState(false);
+  const [loadingCodes, setLoadingCodes] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
   useEffect(() => {
-    getBrands().then(setBrands);
+    setLoadingBrands(true);
+    getBrands()
+      .then(setBrands)
+      .finally(() => setLoadingBrands(false));
   }, []);
 
-  // Load model categories when brand changes
   useEffect(() => {
     setModelCategory("");
     setEngineNotes("");
     setSelectedCodes([]);
     setModelCategories([]);
+
     if (brand) {
-      getModelCategories(brand).then(setModelCategories);
+      setLoadingModels(true);
+      getModelCategories(brand)
+        .then(setModelCategories)
+        .finally(() => setLoadingModels(false));
     }
   }, [brand]);
 
-  // Load engine notes when modelCategory changes
   useEffect(() => {
     setEngineNotes("");
     setSelectedCodes([]);
     setEngineNotesList([]);
+
     if (brand && modelCategory) {
-      getEngineNotes(brand, modelCategory).then(setEngineNotesList);
+      setLoadingEngines(true);
+      getEngineNotes(brand, modelCategory)
+        .then(setEngineNotesList)
+        .finally(() => setLoadingEngines(false));
     }
   }, [modelCategory]);
 
-  // Load codes when engineNotes changes
   useEffect(() => {
     setSelectedCodes([]);
     setCodes([]);
+
     if (brand && modelCategory && engineNotes) {
-      getCodes(brand, modelCategory, engineNotes).then(setCodes);
+      setLoadingCodes(true);
+      getCodes(brand, modelCategory, engineNotes)
+        .then(setCodes)
+        .finally(() => setLoadingCodes(false));
     }
   }, [engineNotes]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setSubmitting(true);
       const data = { brand, modelCategory, engineNotes, selectedCodes };
       const response = await submitSelectedWarranty(data);
       setResult(response);
     } catch (err) {
       alert("Error submitting warranty selection.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -79,21 +101,27 @@ const WarrantyForm = () => {
           className="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">Select Brand</option>
-          {brands.map((b, idx) => (
-            <option key={idx} value={b}>
-              {b}
-            </option>
-          ))}
+          {loadingBrands ? (
+            <option disabled>Loading...</option>
+          ) : (
+            brands.map((b, idx) => (
+              <option key={idx} value={b}>
+                {b}
+              </option>
+            ))
+          )}
         </select>
 
         {/* Model Category Select */}
         <select
           value={modelCategory}
           onChange={(e) => setModelCategory(e.target.value)}
-          disabled={!modelCategories.length}
+          disabled={!modelCategories.length || loadingModels}
           className="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="">Select Model Category</option>
+          <option value="">
+            {loadingModels ? "Loading..." : "Select Model Category"}
+          </option>
           {modelCategories.map((m, idx) => (
             <option key={idx} value={m}>
               {m}
@@ -105,10 +133,12 @@ const WarrantyForm = () => {
         <select
           value={engineNotes}
           onChange={(e) => setEngineNotes(e.target.value)}
-          disabled={!engineNotesList.length}
+          disabled={!engineNotesList.length || loadingEngines}
           className="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="">Select Engine Notes</option>
+          <option value="">
+            {loadingEngines ? "Loading..." : "Select Engine Notes"}
+          </option>
           {engineNotesList.map((e, idx) => (
             <option key={idx} value={e}>
               {e}
@@ -116,33 +146,39 @@ const WarrantyForm = () => {
           ))}
         </select>
 
+        {/* Codes Checkbox List */}
         <div className="space-y-2">
-          <p className="font-medium">Select Codes:</p>
-          {codes.map((code, idx) => (
-            <label key={idx} className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                value={code}
-                checked={selectedCodes.includes(code)}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    setSelectedCodes([...selectedCodes, code]);
-                  } else {
-                    setSelectedCodes(selectedCodes.filter((c) => c !== code));
-                  }
-                }}
-                className="form-checkbox h-4 w-4 text-blue-600"
-              />
-              <span>{code}</span>
-            </label>
-          ))}
+          <p className="font-medium">
+            {loadingCodes ? "Loading Codes..." : "Select Codes:"}
+          </p>
+          {!loadingCodes &&
+            codes.map((code, idx) => (
+              <label key={idx} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  value={code}
+                  checked={selectedCodes.includes(code)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedCodes([...selectedCodes, code]);
+                    } else {
+                      setSelectedCodes(selectedCodes.filter((c) => c !== code));
+                    }
+                  }}
+                  className="form-checkbox h-4 w-4 text-blue-600"
+                />
+                <span>{code}</span>
+              </label>
+            ))}
         </div>
 
+        {/* Submit Button */}
         <button
           type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 transition-colors px-4 py-2 rounded-md font-semibold"
+          disabled={submitting}
+          className="w-full bg-blue-600 hover:bg-blue-700 transition-colors px-4 py-2 rounded-md font-semibold disabled:opacity-50"
         >
-          Submit
+          {submitting ? "Submitting..." : "Submit"}
         </button>
 
         {/* Result Section */}

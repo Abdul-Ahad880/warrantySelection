@@ -31,10 +31,18 @@ export const getBrands = async (req, res) => {
 
   res.json(brands);
 };
-
 export const getModelCategories = async (req, res) => {
-  const modelCategories = await Expanded.find().distinct("modelCategory");
-  if (!modelCategories || modelCategories.length === 0) {
+  const { brand } = req.query;
+
+  if (!brand) {
+    return res.status(400).json({ message: "Brand is required" });
+  }
+
+  const modelCategories = await Expanded.find({ brand }).distinct(
+    "modelCategory"
+  );
+
+  if (!modelCategories.length) {
     return res.status(404).json({ message: "No model categories found" });
   }
 
@@ -42,16 +50,41 @@ export const getModelCategories = async (req, res) => {
 };
 
 export const getEngineNotes = async (req, res) => {
-  const engineNotes = await Expanded.find().distinct("engineNotes");
-  if (!engineNotes || engineNotes.length === 0) {
+  const { brand, modelCategory } = req.query;
+
+  if (!brand || !modelCategory) {
+    return res
+      .status(400)
+      .json({ message: "Brand and model category are required" });
+  }
+
+  const engineNotes = await Expanded.find({ brand, modelCategory }).distinct(
+    "engineNotes"
+  );
+
+  if (!engineNotes.length) {
     return res.status(404).json({ message: "No engine notes found" });
   }
+
   res.json(engineNotes);
 };
 
 export const getCodes = async (req, res) => {
-  const codes = await Expanded.find().distinct("code");
-  if (!codes || codes.length === 0) {
+  const { brand, modelCategory, engineNotes } = req.query;
+
+  if (!brand || !modelCategory || !engineNotes) {
+    return res.status(400).json({
+      message: "Brand, model category, and engine notes are required",
+    });
+  }
+
+  const codes = await Expanded.find({
+    brand,
+    modelCategory,
+    engineNotes,
+  }).distinct("code");
+
+  if (!codes.length) {
     return res.status(404).json({ message: "No codes found" });
   }
 
