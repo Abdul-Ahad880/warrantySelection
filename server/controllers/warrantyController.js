@@ -110,7 +110,7 @@ export const getCodes = async (req, res) => {
     return res.status(404).json({ message: "No codes found" });
   }
 
-  // Optionally filter for unique code-subsystem pairs
+  // Optionally filter for unique code-subsystem pa
   const uniqueMap = new Map();
   records.forEach((rec) => {
     if (!uniqueMap.has(rec.code)) {
