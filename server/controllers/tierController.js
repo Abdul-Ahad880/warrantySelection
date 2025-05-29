@@ -1,4 +1,4 @@
-import { TierDiscounts } from "../models/TierDiscounts.js";
+import { TierDiscounts } from "../models/tierDiscounts";
 
 export const getTierDiscount = async (req, res) => {
   try {

@@ -1,4 +1,4 @@
-import Expanded from "../models/Expanded.js";
+import Expanded from "../models/expanded.js";
 
 export const submitSelectedWarranty = async (req, res) => {
   try {

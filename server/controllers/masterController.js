@@ -1,4 +1,4 @@
-import MasterData from "../models/MasterData.js";
+import MasterData from "../models/masterData.js";
 
 export const getMasterData = async (req, res) => {
   try {

@@ -1,4 +1,4 @@
-import Systems from "../models/Systems.js";
+import Systems from "../models/systems.js";
 
 export const getSystem = async (req, res) => {
   try {
