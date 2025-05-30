@@ -1,5 +1,27 @@
 import Expanded from "../models/expanded.js";
 
+// export const submitSelectedWarranty = async (req, res) => {
+//   try {
+//     const { brand, modelCategory, engineNotes, selectedCodes } = req.body;
+
+//     if (!brand || !modelCategory || !engineNotes || !selectedCodes?.length) {
+//       return res.status(400).json({ message: "Missing required fields" });
+//     }
+
+//     const selectedSubsystems = await Expanded.find({
+//       brand,
+//       modelCategory,
+//       engineNotes,
+//       code: { $in: selectedCodes },
+//     });
+
+//     const total = selectedSubsystems.reduce((sum, item) => sum + item.price, 0);
+//     res.status(200).json({ selectedSubsystems, total });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
 export const submitSelectedWarranty = async (req, res) => {
   try {
     const { brand, modelCategory, engineNotes, selectedCodes } = req.body;
@@ -15,14 +37,19 @@ export const submitSelectedWarranty = async (req, res) => {
       code: { $in: selectedCodes },
     });
 
-    const total = selectedSubsystems.reduce((sum, item) => sum + item.price, 0);
+    // Corrected total calculation
+    const total = selectedSubsystems.reduce((sum, item) => {
+      // Ensure item.price is a number; default to 0 if not
+      const price = typeof item.price === "number" ? item.price : 0;
+      return sum + price;
+    }, 0);
+
     res.status(200).json({ selectedSubsystems, total });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
-
 export const getBrands = async (req, res) => {
   const brands = await Expanded.distinct("brand");
   if (!brands || brands.length === 0) {
