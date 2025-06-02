@@ -25,11 +25,9 @@ import Expanded from "../models/expanded.js";
 export const submitSelectedWarranty = async (req, res) => {
   try {
     const { brand, modelCategory, engineNotes, selectedCodes } = req.body;
-
     if (!brand || !modelCategory || !engineNotes || !selectedCodes?.length) {
       return res.status(400).json({ message: "Missing required fields" });
     }
-
     const selectedSubsystems = await Expanded.find({
       brand,
       modelCategory,

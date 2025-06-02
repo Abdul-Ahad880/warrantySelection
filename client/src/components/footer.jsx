@@ -34,7 +34,8 @@ const Footer = () => {
             Email: reception@mmmwservice.ae
           </span>
         </div>
-
+   
+               
         <div className="flex items-center gap-2">
           <svg
             className="w-5 h-5 text-gray-700"
