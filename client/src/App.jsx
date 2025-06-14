@@ -181,7 +181,7 @@ const WarrantyForm = () => {
           {/* Codes Checkbox List */}
           <div className="space-y-3">
             <p className="font-medium text-blue-900">
-              {loadingCodes ? "Loading Codes..." : "Select Codes:"}
+              {loadingCodes ? "Loading Codes..." : "Select :"}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-64 overflow-y-auto pr-2">
               {!loadingCodes &&
@@ -208,7 +208,7 @@ const WarrantyForm = () => {
                       />
                       <div>
                         <p className="text-sm font-semibold text-blue-900">
-                          Code: {item.code}
+                          {item.code}
                         </p>
                         <p className="text-xs text-gray-600">
                           Subsystem: {item.subSystem}
@@ -239,7 +239,7 @@ const WarrantyForm = () => {
                   >
                     <div>
                       <p className="font-medium text-blue-900">
-                        <span className="text-sky-500">Code:</span> {item.code}
+                        <span className="text-sky-500"></span> {item.code}
                       </p>
                       <p className="text-sm text-gray-600">
                         <span className="text-sky-500">Subsystem:</span>{" "}
