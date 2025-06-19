@@ -4,8 +4,10 @@ import {
   getBrands,
   getModelCategories,
   getEngineNotes,
-  getCodes,
+  getSystemsByTier,
+  getTierDiscount,
 } from "./api/selectWarranty.js";
+
 import Header from "./components/header.jsx";
 import Footer from "./components/footer.jsx";
 
@@ -21,21 +23,35 @@ const WarrantyForm = () => {
   const [engineNotesList, setEngineNotesList] = useState([]);
   const [codes, setCodes] = useState([]);
 
+  const [tiers, setTiers] = useState([]);
+  const [tier, setTier] = useState("Custom");
+  const [tierDiscount, setTierDiscount] = useState(0);
+
   const [loadingBrands, setLoadingBrands] = useState(false);
   const [loadingModels, setLoadingModels] = useState(false);
   const [loadingEngines, setLoadingEngines] = useState(false);
   const [loadingCodes, setLoadingCodes] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Fetch brands on mount
   useEffect(() => {
     setLoadingBrands(true);
     getBrands()
       .then(setBrands)
       .finally(() => setLoadingBrands(false));
+
+    getTierDiscount()
+      .then((data) => {
+        let tierList = data.tier || [];
+        if (!tierList.find((t) => t.tier === "Custom")) {
+          tierList = [{ tier: "Custom", discount: "0%" }, ...tierList];
+        }
+        setTiers(tierList);
+        const selected = tierList.find((t) => t.tier === tier);
+        setTierDiscount(selected ? parseFloat(selected.discount) : 0);
+      })
+      .catch(() => alert("Error fetching tiers."));
   }, []);
 
-  // Fetch model categories when brand changes
   useEffect(() => {
     setModelCategory("");
     setEngineNotes("");
@@ -49,7 +65,6 @@ const WarrantyForm = () => {
     }
   }, [brand]);
 
-  // Fetch engine notes when model category changes
   useEffect(() => {
     setEngineNotes("");
     setSelectedCodes([]);
@@ -62,55 +77,98 @@ const WarrantyForm = () => {
     }
   }, [modelCategory]);
 
-  // Fetch codes when engine notes change
   useEffect(() => {
-    setSelectedCodes([]);
-    setCodes([]);
-    if (brand && modelCategory && engineNotes) {
-      setLoadingCodes(true);
-      getCodes(brand, modelCategory, engineNotes)
-        .then(setCodes)
-        .finally(() => setLoadingCodes(false));
+    const selectedTier = tiers.find((t) => t.tier === tier);
+    if (selectedTier) {
+      setTierDiscount(parseFloat(selectedTier.discount));
+    } else {
+      setTierDiscount(0);
     }
-  }, [engineNotes]);
 
-  // Automatically submit when selectedCodes change
+    if (tier) {
+      setLoadingCodes(true);
+      getSystemsByTier(tier)
+        .then((data) => {
+          if (data && Array.isArray(data.systems)) {
+            setCodes(data.systems);
+            setSelectedCodes(tier === "Custom" ? [] : data.systems.map((item) => item.code));
+          } else {
+            alert("Unexpected system code response format.");
+            setCodes([]);
+            setSelectedCodes([]);
+          }
+        })
+        .catch(() => {
+          alert("Error fetching systems for selected tier.");
+          setCodes([]);
+          setSelectedCodes([]);
+        })
+        .finally(() => setLoadingCodes(false));
+    } else {
+      setCodes([]);
+      setSelectedCodes([]);
+    }
+  }, [tier]);
+
+  const handleCheckboxChange = (code) => {
+    setSelectedCodes((prev) =>
+      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
+    );
+  };
+
   useEffect(() => {
     const submitData = async () => {
-      if (brand && modelCategory && engineNotes && selectedCodes.length > 0) {
+      if (
+        brand &&
+        modelCategory &&
+        engineNotes &&
+        tier &&
+        selectedCodes.length
+      ) {
+        setSubmitting(true);
         try {
-          setSubmitting(true);
-          const data = { brand, modelCategory, engineNotes, selectedCodes };
-          const response = await submitSelectedWarranty(data);
-          setResult(response);
+          const payload = {
+            brand,
+            modelCategory,
+            engineNotes,
+            tier,
+            selectedCodes,
+          };
+          const resp = await submitSelectedWarranty(payload);
+          setResult(resp);
         } catch (err) {
-          alert("Error calculating warranty selection.");
+          console.error(err);
+          alert("Error calculating warranty.");
         } finally {
           setSubmitting(false);
         }
       } else {
-        setResult(null); // Clear result if no codes are selected
+        setResult(null);
       }
     };
-
     submitData();
-  }, [brand, modelCategory, engineNotes, selectedCodes]);
+  }, [brand, modelCategory, engineNotes, tier, selectedCodes]);
+
+  const calculateDiscountedTotal = () => {
+    if (!result || !result.total) return null;
+    const discount = tierDiscount || 0;
+    const total = parseFloat(result.total);
+    const discountedTotal = total - (total * discount) / 100;
+    return discountedTotal.toFixed(2);
+  };
 
   return (
     <>
       <Header />
-      <div className="flex items-center justify-center min-h-screen bg-gray-100 text-gray-900 p-4">
-        <div
-          className="p-6 rounded-2xl shadow-lg w-full max-w-4xl space-y-6"
-          style={{ backgroundColor: "#FFFFFF" }} // White background
-        >
+      <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
+        <div className="w-full max-w-4xl p-6 bg-white rounded-2xl shadow-lg space-y-6">
           <h2 className="text-3xl font-bold text-center text-blue-900">
             Warranty Selection
           </h2>
 
-          {/* Horizontal Form Fields */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Brand Select */}
+          {/* Dropdowns */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Brand */}
             <div>
               <label className="block text-sm font-medium text-blue-900 mb-1">
                 Brand
@@ -118,14 +176,14 @@ const WarrantyForm = () => {
               <select
                 value={brand}
                 onChange={(e) => setBrand(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg bg-white border border-sky-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all duration-300"
+                className="w-full px-4 py-2 rounded-lg border border-sky-400 bg-white"
               >
                 <option value="">Select Brand</option>
                 {loadingBrands ? (
                   <option disabled>Loading...</option>
                 ) : (
-                  brands.map((b, idx) => (
-                    <option key={idx} value={b}>
+                  brands.map((b, i) => (
+                    <option key={i} value={b}>
                       {b}
                     </option>
                   ))
@@ -133,7 +191,7 @@ const WarrantyForm = () => {
               </select>
             </div>
 
-            {/* Model Category Select */}
+            {/* Model Category */}
             <div>
               <label className="block text-sm font-medium text-blue-900 mb-1">
                 Model Category
@@ -142,20 +200,20 @@ const WarrantyForm = () => {
                 value={modelCategory}
                 onChange={(e) => setModelCategory(e.target.value)}
                 disabled={!modelCategories.length || loadingModels}
-                className="w-full px-4 py-2 rounded-lg bg-white border border-sky-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all duration-300"
+                className="w-full px-4 py-2 rounded-lg border border-sky-400 bg-white"
               >
                 <option value="">
                   {loadingModels ? "Loading..." : "Select Model Category"}
                 </option>
-                {modelCategories.map((m, idx) => (
-                  <option key={idx} value={m}>
+                {modelCategories.map((m, i) => (
+                  <option key={i} value={m}>
                     {m}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Engine Notes Select */}
+            {/* Engine Notes */}
             <div>
               <label className="block text-sm font-medium text-blue-900 mb-1">
                 Engine Notes
@@ -164,54 +222,62 @@ const WarrantyForm = () => {
                 value={engineNotes}
                 onChange={(e) => setEngineNotes(e.target.value)}
                 disabled={!engineNotesList.length || loadingEngines}
-                className="w-full px-4 py-2 rounded-lg bg-white border border-sky-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all duration-300"
+                className="w-full px-4 py-2 rounded-lg border border-sky-400 bg-white"
               >
                 <option value="">
                   {loadingEngines ? "Loading..." : "Select Engine Notes"}
                 </option>
-                {engineNotesList.map((e, idx) => (
-                  <option key={idx} value={e}>
-                    {e}
+                {engineNotesList.map((en, i) => (
+                  <option key={i} value={en}>
+                    {en}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Tier */}
+            <div>
+              <label className="block text-sm font-medium text-blue-900 mb-1">
+                Tier
+              </label>
+              <select
+                value={tier}
+                onChange={(e) => setTier(e.target.value)}
+                className="w-full px-4 py-2 rounded-lg border border-sky-400 bg-white"
+              >
+                <option value="">Select Tier</option>
+                {tiers.map((t, i) => (
+                  <option key={i} value={t.tier}>
+                    {t.tier} – {t.discount}
                   </option>
                 ))}
               </select>
             </div>
           </div>
 
-          {/* Codes Checkbox List */}
+          {/* Subsystem Checkboxes */}
           <div className="space-y-3">
-            <p className="font-medium text-blue-900">
-              {loadingCodes ? "Loading Codes..." : "Select :"}
+            <p className="text-blue-900 font-medium">
+              {loadingCodes ? "Loading subsystems..." : "Select Subsystems"}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-64 overflow-y-auto pr-2">
               {!loadingCodes &&
-                codes.map((item, idx) => (
+                codes.map((item) => (
                   <label
-                    key={item._id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-sky-400 hover:border-sky-600 transition-all duration-200"
+                    key={item.code}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-sky-400"
                   >
                     <div className="flex items-center gap-3">
                       <input
                         type="checkbox"
-                        value={item.code}
                         checked={selectedCodes.includes(item.code)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedCodes([...selectedCodes, item.code]);
-                          } else {
-                            setSelectedCodes(
-                              selectedCodes.filter((c) => c !== item.code)
-                            );
-                          }
-                        }}
-                        className="form-checkbox h-5 w-5 text-sky-500 rounded focus:ring-sky-500"
+                        onChange={() => handleCheckboxChange(item.code)}
+                        className="form-checkbox h-5 w-5 text-sky-500"
                       />
                       <div>
-                        <p className="text-sm font-semibold text-blue-900">
-                          {item.code}
-                        </p>
+                        <p className="font-semibold text-blue-900">{item.code}</p>
                         <p className="text-xs text-gray-600">
-                          Subsystem: {item.subSystem}
+                          Subsystem: {item.label || "N/A"}
                         </p>
                       </div>
                     </div>
@@ -220,30 +286,28 @@ const WarrantyForm = () => {
             </div>
           </div>
 
-          {/* Result Section */}
+          {/* Results */}
           {submitting && (
-            <div className="bg-gray-50 mt-6 p-5 rounded-xl border border-sky-400 shadow-lg text-center">
+            <div className="p-5 bg-gray-50 rounded-xl border border-sky-400 text-center">
               <p className="text-gray-600">Calculating...</p>
             </div>
           )}
-          {result && !submitting && (
-            <div className="bg-gray-50 mt-6 p-5 rounded-xl border border-sky-400 shadow-lg">
-              <h3 className="text-xl font-semibold mb-3 text-blue-900">
+
+          {result && (
+            <div className="bg-gray-50 p-5 rounded-xl border border-sky-400 space-y-3">
+              <h3 className="text-xl font-semibold text-blue-900">
                 Selected Subsystems
               </h3>
               <ul className="space-y-3">
-                {result.selectedSubsystems.map((item, index) => (
+                {result.selectedSubsystems.map((item, i) => (
                   <li
-                    key={index}
-                    className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border border-sky-400"
+                    key={i}
+                    className="flex justify-between bg-white p-3 rounded-lg border border-sky-400"
                   >
                     <div>
-                      <p className="font-medium text-blue-900">
-                        <span className="text-sky-500"></span> {item.code}
-                      </p>
+                      <p className="font-medium text-blue-900">{item.code}</p>
                       <p className="text-sm text-gray-600">
-                        <span className="text-sky-500">Subsystem:</span>{" "}
-                        {item.subSystem}
+                        Subsystem: {item.subSystem}
                       </p>
                     </div>
                     <span className="text-green-600 font-semibold">
@@ -252,10 +316,16 @@ const WarrantyForm = () => {
                   </li>
                 ))}
               </ul>
-              <p className="mt-4 font-bold text-lg text-right text-blue-900">
-                Total:{" "}
+
+              <div className="flex justify-between mt-4 font-bold text-lg text-blue-900">
+                <p>Total:</p>
                 <span className="text-green-600">AED {result.total}</span>
-              </p>
+              </div>
+
+              <div className="flex justify-between text-lg text-blue-900">
+                <p>Total After Discount:</p>
+                <span className="text-green-600">AED {calculateDiscountedTotal()}</span>
+              </div>
             </div>
           )}
         </div>

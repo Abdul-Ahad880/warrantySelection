@@ -12,7 +12,7 @@ export const submitSelectedWarranty = async (data) => {
   }
 };
 
-export const getBrands = async (data) => {
+export const getBrands = async () => {
   try {
     const response = await axios.get(`${base}/api/warranty/brands`);
     return response.data;
@@ -56,4 +56,31 @@ export const getSubsystems = async () => {
     console.error("API Error:", error);
     throw error;
   }
+};
+export const getTierDiscount = async () => {
+  try {
+    const response = await axios.get(`${base}/api/tier`);
+    return response.data;
+  } catch (error) {
+    console.error("API Error:", error);
+    throw error;
+  }
+};
+
+export const getSystemByCode = async (code) => {
+  try {
+    const response = await axios.get(`${base}/api/system/code`, {
+      params: { code },
+    });
+    return response.data.system; // assuming your backend returns { system: {...} }
+  } catch (error) {
+    console.error("API Error:", error);
+    throw error;
+  }
+};
+export const getSystemsByTier = async (tier) => {
+  const response = await axios.get(`${base}/api/system`, {
+    params: { tier },
+  });
+  return response.data; // includes { systems: [...] }
 };
